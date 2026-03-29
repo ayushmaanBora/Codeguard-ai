@@ -17,6 +17,7 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
+
 def check_syntax(code):
     issues = []
     lines = code.split("\n")
@@ -28,9 +29,7 @@ def check_syntax(code):
             "title": "Indentation Error",
             "severity": "critical",
             "line": e.lineno,
-            "explanation": f"Line {e.lineno}: Your code has wrong indentation. "
-                          f"Python is very strict about spaces and tabs. "
-                          f"Problem: {e.msg}",
+            "explanation": f"Line {e.lineno}: Your code has wrong indentation. Python is very strict about spaces and tabs. Problem: {e.msg}",
             "badCode": lines[e.lineno - 1].rstrip() if e.lineno and e.lineno <= len(lines) else "if True:\nprint('hello')",
             "goodCode": "    " + lines[e.lineno - 1].strip() if e.lineno and e.lineno <= len(lines) else "if True:\n    print('hello')",
             "steps": [
@@ -45,9 +44,7 @@ def check_syntax(code):
             "title": "Syntax Error",
             "severity": "critical",
             "line": e.lineno,
-            "explanation": f"Line {e.lineno}: Your code has a syntax error. "
-                          f"Python cannot even read this code. "
-                          f"Problem: {e.msg}",
+            "explanation": f"Line {e.lineno}: Your code has a syntax error. Python cannot even read this code. Problem: {e.msg}",
             "badCode": lines[e.lineno - 1].rstrip() if e.lineno and e.lineno <= len(lines) else "for i in range(10)\n    print(i)",
             "goodCode": "# Fix the syntax error on this line\n" + lines[e.lineno - 1].rstrip(),
             "steps": [
@@ -58,11 +55,29 @@ def check_syntax(code):
         })
     return issues
 
+
 def check_logic(code):
-    lower_lines = [l.lower() for l in lines]
     issues = []
-    lower = lower_lines[i-1]
-    
+    lines = code.split("\n")
+
+    # Check for C/C++ code pasted in wrong mode
+    C_PATTERNS = ["printf(", "scanf(", "#include", "int ", "float ", "void ", "->", "::"]
+    if any(p in code for p in C_PATTERNS):
+        issues.append({
+            "id": "wrong_language",
+            "title": "This looks like C/C++ code, not Python",
+            "severity": "critical",
+            "line": 1,
+            "explanation": "Line 1: This code appears to be C or C++, not Python. Running C code in a Python environment will fail completely.",
+            "badCode": 'int x = 10;\nprintf("hello");',
+            "goodCode": 'x = 10\nprint("hello")',
+            "steps": [
+                "Check that you selected the correct language",
+                "If writing Python, remove C-style syntax",
+                "If writing C, use a C compiler instead"
+            ]
+        })
+
     # Check for hardcoded secrets
     for i, line in enumerate(lines, 1):
         lower = line.lower()
@@ -75,8 +90,7 @@ def check_logic(code):
                     "title": "Hardcoded Password or Secret Key",
                     "severity": "critical",
                     "line": i,
-                    "explanation": f"Line {i}: You have a hardcoded secret in your code. "
-                                  f"Anyone who sees your code can steal it instantly.",
+                    "explanation": f"Line {i}: You have a hardcoded secret in your code. Anyone who sees your code can steal it instantly.",
                     "badCode": 'password = "mypassword123"',
                     "goodCode": "import os\npassword = os.getenv('PASSWORD')",
                     "steps": [
@@ -94,8 +108,7 @@ def check_logic(code):
                 "title": "Dangerous eval() Usage",
                 "severity": "critical",
                 "line": i,
-                "explanation": f"Line {i}: eval() runs any string as real code. "
-                              f"This is extremely dangerous with user input.",
+                "explanation": f"Line {i}: eval() runs any string as real code. This is extremely dangerous with user input.",
                 "badCode": "result = eval(user_input)",
                 "goodCode": "import ast\nresult = ast.literal_eval(user_input)",
                 "steps": [
@@ -118,8 +131,7 @@ def check_logic(code):
                     "title": "Infinite Loop Detected",
                     "severity": "high",
                     "line": i,
-                    "explanation": f"Line {i}: This loop has no exit condition "
-                                  f"and will run forever, freezing your program.",
+                    "explanation": f"Line {i}: This loop has no exit condition and will run forever, freezing your program.",
                     "badCode": "while True:\n    process_data()",
                     "goodCode": "while True:\n    process_data()\n    if done:\n        break",
                     "steps": [
@@ -133,15 +145,13 @@ def check_logic(code):
     for i, line in enumerate(lines, 1):
         if ("/" in line and
             not line.strip().startswith("#") and
-            any(v in line for v in
-                ["len(", "count", "total", "size", "num"])):
+            any(v in line for v in ["len(", "count", "total", "size", "num"])):
             issues.append({
                 "id": "division_risk",
                 "title": "Possible Division by Zero",
                 "severity": "high",
                 "line": i,
-                "explanation": f"Line {i}: You are dividing by a variable that "
-                              f"could be zero, which crashes your program instantly.",
+                "explanation": f"Line {i}: You are dividing by a variable that could be zero, which crashes your program instantly.",
                 "badCode": "average = total / count",
                 "goodCode": "if count == 0:\n    average = 0\nelse:\n    average = total / count",
                 "steps": [
@@ -151,7 +161,7 @@ def check_logic(code):
                 ]
             })
 
-    # Check for empty except blocks
+    # Check for empty except blocks (named except only)
     for i, line in enumerate(lines, 1):
         stripped = line.strip()
         if stripped.startswith("except ") and stripped != "except:":
@@ -163,9 +173,7 @@ def check_logic(code):
                         "title": "Empty except Block with pass",
                         "severity": "medium",
                         "line": i,
-                        "explanation": f"Line {i}: You are silently ignoring "
-                                      f"errors with pass. This hides bugs and "
-                                      f"makes debugging nearly impossible.",
+                        "explanation": f"Line {i}: You are silently ignoring errors with pass. This hides bugs and makes debugging nearly impossible.",
                         "badCode": "try:\n    do_something()\nexcept:\n    pass",
                         "goodCode": "try:\n    do_something()\nexcept Exception as e:\n    print('Error:', e)",
                         "steps": [
@@ -176,11 +184,11 @@ def check_logic(code):
                     })
 
     # Check for missing return in functions
+    VOID_FUNCS = {"__init__", "__del__", "__str__", "__repr__",
+                  "__enter__", "__exit__", "setUp", "tearDown", "main"}
     for i, line in enumerate(lines, 1):
         stripped = line.strip()
         if stripped.startswith("def ") and stripped.endswith(":"):
-            VOID_FUNCS = {"__init__", "__del__", "__str__", "__repr__",
-                          "__enter__", "__exit__", "setUp", "tearDown", "main"}
             try:
                 func_name = stripped[4:stripped.index("(")].strip()
             except ValueError:
@@ -195,9 +203,7 @@ def check_logic(code):
                     "title": "Function Has No Return Statement",
                     "severity": "low",
                     "line": i,
-                    "explanation": f"Line {i}: This function does not return "
-                                  f"anything. If you expect a result from it, "
-                                  f"it will return None silently.",
+                    "explanation": f"Line {i}: This function does not return anything. If you expect a result from it, it will return None silently.",
                     "badCode": "def calculate(x, y):\n    result = x + y",
                     "goodCode": "def calculate(x, y):\n    result = x + y\n    return result",
                     "steps": [
@@ -209,17 +215,15 @@ def check_logic(code):
 
     # Check for SQL injection
     for i, line in enumerate(lines, 1):
-        lower = line.lower()
-    if (("select" in lower or "insert" in lower or "delete" in lower or "update" in lower) and
-    ("+" in line or "%" in line or ".format(" in line)):
+        if (("SELECT" in line or "INSERT" in line or
+             "DELETE" in line or "UPDATE" in line) and
+            ("+" in line or "%" in line or ".format(" in line)):
             issues.append({
                 "id": "sql_injection_backend",
                 "title": "SQL Injection Risk in Query",
                 "severity": "critical",
                 "line": i,
-                "explanation": f"Line {i}: You are building a SQL query using "
-                              f"string concatenation. Attackers can inject "
-                              f"malicious SQL and steal your database.",
+                "explanation": f"Line {i}: You are building a SQL query using string concatenation. Attackers can inject malicious SQL and steal your database.",
                 "badCode": 'query = "SELECT * FROM users WHERE id = " + user_id',
                 "goodCode": 'query = "SELECT * FROM users WHERE id = ?"\ncursor.execute(query, [user_id])',
                 "steps": [
@@ -245,9 +249,7 @@ def check_logic(code):
                             "title": "Possibly Unused Import",
                             "severity": "low",
                             "line": i,
-                            "explanation": f"Line {i}: You imported '{imported}' "
-                                          f"but it does not appear to be used "
-                                          f"anywhere in your code.",
+                            "explanation": f"Line {i}: You imported '{imported}' but it does not appear to be used anywhere in your code.",
                             "badCode": f"import {imported}\n# never used below",
                             "goodCode": "# Remove unused imports\n# Only import what you actually use",
                             "steps": [
@@ -257,7 +259,7 @@ def check_logic(code):
                             ]
                         })
 
-    # Check for print statements left in code (debug leftovers)
+    # Check for debug print statements
     for i, line in enumerate(lines, 1):
         stripped = line.strip()
         if stripped.startswith("print(") and not line.strip().startswith("#"):
@@ -266,8 +268,7 @@ def check_logic(code):
                 "title": "Debug print() Left in Code",
                 "severity": "low",
                 "line": i,
-                "explanation": f"Line {i}: You left a print() statement in your code. "
-                              f"In production, use logging instead of print().",
+                "explanation": f"Line {i}: You left a print() statement in your code. In production, use logging instead of print().",
                 "badCode": 'print("user data:", user)',
                 "goodCode": "import logging\nlogging.info('user data: %s', user)",
                 "steps": [
@@ -287,9 +288,7 @@ def check_logic(code):
                 "title": "Mutable Default Argument",
                 "severity": "high",
                 "line": i,
-                "explanation": f"Line {i}: Using a list or dict as a default argument "
-                              f"is a classic Python bug. The same object is shared "
-                              f"across all function calls.",
+                "explanation": f"Line {i}: Using a list or dict as a default argument is a classic Python bug. The same object is shared across all function calls.",
                 "badCode": "def add_item(item, items=[]):\n    items.append(item)\n    return items",
                 "goodCode": "def add_item(item, items=None):\n    if items is None:\n        items = []\n    items.append(item)\n    return items",
                 "steps": [
@@ -299,7 +298,7 @@ def check_logic(code):
                 ]
             })
 
-    # Check for bare except (catches everything including KeyboardInterrupt)
+    # Check for bare except
     for i, line in enumerate(lines, 1):
         stripped = line.strip()
         if stripped == "except:":
@@ -308,9 +307,7 @@ def check_logic(code):
                 "title": "Bare except Clause",
                 "severity": "high",
                 "line": i,
-                "explanation": f"Line {i}: A bare except: catches every possible error, "
-                              f"including system exits and keyboard interrupts. "
-                              f"This can hide serious problems.",
+                "explanation": f"Line {i}: A bare except: catches every possible error, including system exits and keyboard interrupts. This can hide serious problems.",
                 "badCode": "try:\n    risky()\nexcept:\n    pass",
                 "goodCode": "try:\n    risky()\nexcept Exception as e:\n    print('Error:', e)",
                 "steps": [
@@ -320,7 +317,7 @@ def check_logic(code):
                 ]
             })
 
-    # Check for open() without context manager (with statement)
+    # Check for open() without context manager
     for i, line in enumerate(lines, 1):
         stripped = line.strip()
         if re.search(r'\bopen\(', stripped) and not stripped.startswith("with") and not stripped.startswith("#"):
@@ -329,9 +326,7 @@ def check_logic(code):
                 "title": "File Opened Without Context Manager",
                 "severity": "high",
                 "line": i,
-                "explanation": f"Line {i}: You opened a file without using 'with'. "
-                              f"If an error occurs, the file will never be closed, "
-                              f"causing memory leaks.",
+                "explanation": f"Line {i}: You opened a file without using 'with'. If an error occurs, the file will never be closed, causing memory leaks.",
                 "badCode": 'f = open("data.txt", "r")\ndata = f.read()',
                 "goodCode": 'with open("data.txt", "r") as f:\n    data = f.read()',
                 "steps": [
@@ -350,18 +345,16 @@ def check_logic(code):
                 "title": "Use 'is None' Instead of '== None'",
                 "severity": "low",
                 "line": i,
-                "explanation": f"Line {i}: Comparing to None with == can give wrong "
-                              f"results if an object overrides __eq__. "
-                              f"Always use 'is None'.",
+                "explanation": f"Line {i}: Comparing to None with == can give wrong results if an object overrides __eq__. Always use 'is None'.",
                 "badCode": "if result == None:\n    print('empty')",
                 "goodCode": "if result is None:\n    print('empty')",
                 "steps": [
                     "Find '== None' on line " + str(i),
                     "Replace it with 'is None'",
-                    "Same fix for '!= None' → use 'is not None'"
+                    "Same fix for '!= None' use 'is not None'"
                 ]
             })
-        
+
     # Check for == True / == False comparisons
     for i, line in enumerate(lines, 1):
         stripped = line.strip()
@@ -371,8 +364,7 @@ def check_logic(code):
                 "title": "Unnecessary Boolean Comparison",
                 "severity": "low",
                 "line": i,
-                "explanation": f"Line {i}: Comparing directly to True or False is "
-                              f"unnecessary and considered bad practice in Python.",
+                "explanation": f"Line {i}: Comparing directly to True or False is unnecessary and considered bad practice in Python.",
                 "badCode": "if is_valid == True:\n    do_something()",
                 "goodCode": "if is_valid:\n    do_something()",
                 "steps": [
@@ -391,9 +383,7 @@ def check_logic(code):
                 "title": "Outdated 'var' Keyword Used",
                 "severity": "medium",
                 "line": i,
-                "explanation": f"Line {i}: 'var' is outdated JavaScript. It has "
-                              f"confusing scope rules and can cause hard-to-find bugs. "
-                              f"Use 'let' or 'const' instead.",
+                "explanation": f"Line {i}: 'var' is outdated JavaScript. It has confusing scope rules and can cause hard-to-find bugs. Use 'let' or 'const' instead.",
                 "badCode": "var username = 'john'\nvar count = 0",
                 "goodCode": "const username = 'john'\nlet count = 0",
                 "steps": [
@@ -413,9 +403,7 @@ def check_logic(code):
                     "title": "input() Used in Math Without int()",
                     "severity": "high",
                     "line": i,
-                    "explanation": f"Line {i}: input() always returns a string. "
-                                  f"Using it directly in math or comparisons will "
-                                  f"crash your program with a TypeError.",
+                    "explanation": f"Line {i}: input() always returns a string. Using it directly in math or comparisons will crash your program with a TypeError.",
                     "badCode": "age = input('Enter age: ')\nif age > 18:",
                     "goodCode": "age = int(input('Enter age: '))\nif age > 18:",
                     "steps": [
@@ -427,13 +415,16 @@ def check_logic(code):
 
     return issues
 
+
 @app.route("/")
 def home():
     return "CodeGuard AI backend is running."
 
+
 @app.route("/health")
 def health():
     return jsonify({"status": "ok", "version": "1.0"})
+
 
 @app.route("/analyze", methods=["POST"])
 @limiter.limit("30 per minute")
@@ -441,13 +432,13 @@ def analyze():
     data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Invalid JSON in request body"}), 400
+
     code = data.get("code", "")
     language = data.get("language", "python")
 
-
     if not code:
         return jsonify({"error": "No code provided"}), 400
-    
+
     if len(code) > 10000:
         return jsonify({"error": "Code too long. Max 10,000 characters."}), 400
 
@@ -459,6 +450,7 @@ def analyze():
     elif language in ["javascript", "general"]:
         results += check_logic(code)
 
+    # Deduplicate by id + line
     seen = set()
     unique_results = []
     for issue in results:
@@ -466,13 +458,13 @@ def analyze():
         if key not in seen:
             seen.add(key)
             unique_results.append(issue)
-    results = unique_results
 
     return jsonify({
         "language": language,
-        "issues": results,
-        "total": len(results)
+        "issues": unique_results,
+        "total": len(unique_results)
     })
+
 
 if __name__ == "__main__":
     app.run(debug=False)
