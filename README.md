@@ -31,7 +31,7 @@ statements in production code and using bare except clauses.
 Make sure you have Python 3 installed. Then install the dependencies:
 
     pip install flask flask-cors flask-limiter
-    
+
 Then run the backend:
 
     python app.py
@@ -44,6 +44,7 @@ Then open index.html in your browser.
 Frontend is built with HTML, CSS and JavaScript. Backend is built 
 with Python and Flask. Code analysis uses Python's built-in ast module.
 
+I used Claude to help generate code
 
 ## Project Structure
 
