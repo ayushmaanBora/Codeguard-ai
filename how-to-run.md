@@ -12,7 +12,7 @@ cd codeguard-ai
 
 ## Step 2 - Install dependencies
 
-pip install flask flask-cors
+pip install flask flask-cors flask-limiter
 
 ## Step 3 - Start the backend
 

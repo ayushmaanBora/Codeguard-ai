@@ -30,8 +30,8 @@ statements in production code and using bare except clauses.
 
 Make sure you have Python 3 installed. Then install the dependencies:
 
-    pip install flask
-
+    pip install flask flask-cors flask-limiter
+    
 Then run the backend:
 
     python app.py
