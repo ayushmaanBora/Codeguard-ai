@@ -1,5 +1,10 @@
 # CodeGuard AI
 
+<img width="1906" height="978" alt="image" src="https://github.com/user-attachments/assets/d7ae37e4-24b1-4af1-8b54-30e155535a58" /> 
+<img width="1907" height="978" alt="image" src="https://github.com/user-attachments/assets/81c74385-6b4d-4e50-b480-2adb9242638a" />
+
+
+
 CodeGuard AI is a free and open source code analyzer that detects 
 security vulnerabilities, syntax errors, logic bugs, and bad practices 
 in your code. It does not just find the problem, it explains why it 
