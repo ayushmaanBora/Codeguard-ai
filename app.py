@@ -61,7 +61,7 @@ def check_logic(code):
     lines = code.split("\n")
 
     # Check for C/C++ code pasted in wrong mode
-    C_PATTERNS = ["printf(", "scanf(", "#include", "int ", "float ", "void ", "->", "::"]
+    C_PATTERNS = ["printf(", "scanf(", "#include", "int ", "float ", "void ", "->"]
     if any(p in code for p in C_PATTERNS):
         issues.append({
             "id": "wrong_language",
