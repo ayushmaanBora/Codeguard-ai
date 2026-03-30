@@ -142,11 +142,21 @@ def check_logic(code):
                 })
 
     # Check for division by zero risk
+    # Check for division by zero risk
     for i, line in enumerate(lines, 1):
         if ("/" in line and
             not line.strip().startswith("#") and
             any(v in line for v in ["len(", "count", "total", "size", "num"])):
+            # Check if there's a zero guard in the 5 lines above
+            surrounding = lines[max(0, i-5):i]
+            has_guard = any(
+                ("== 0" in l or "!= 0" in l or "if not" in l or "if " in l)
+                for l in surrounding
+            )
+            if has_guard:
+                continue
             issues.append({
+
                 "id": "division_risk",
                 "title": "Possible Division by Zero",
                 "severity": "high",
