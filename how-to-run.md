@@ -9,8 +9,8 @@ You can check by running: python --version
 
 ## Step 1 - Clone the repository
 
-git clone https://github.com/YOURUSERNAME/codeguard-ai
-cd codeguard-ai
+git clone https://github.com/pushpanjalich1985/Codeguard-ai.git
+cd Codeguard-ai
 
 ## Step 2 - Install dependencies
 
