@@ -9,7 +9,7 @@ You can check by running: python --version
 
 ## Step 1 - Clone the repository
 
-git clone https://github.com/YOURUSERNAME/codeguard-ai
+git clone https://github.com/YOURUSERNAME/codeguard-ai <br>
 cd codeguard-ai
 
 ## Step 2 - Install dependencies
